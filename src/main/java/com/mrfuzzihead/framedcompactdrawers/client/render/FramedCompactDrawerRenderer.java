@@ -62,17 +62,16 @@ public class FramedCompactDrawerRenderer extends DrawersRenderer {
         RenderBlocks renderer) {
         BlockFramedCompactDrawer framed = (BlockFramedCompactDrawer) block;
 
-        ItemStack matSide = tile.getMaterialSide();
-        ItemStack matFront = tile.getMaterialFront();
-        if (matFront == null) matFront = matSide;
-        ItemStack matTrim = tile.getMaterialTrim();
-        if (matTrim == null) matTrim = matSide;
+        ItemStack matSide = tile.getEffectiveMaterialSide();
+        ItemStack matFront = tile.getEffectiveMaterialFront();
+        ItemStack matTrim = tile.getEffectiveMaterialTrim();
 
         IIcon sideIcon = resolveIcon(matSide, framed.getDefaultFaceIcon());
         IIcon trimIcon = resolveIcon(matTrim, framed.getDefaultTrimIcon());
         IIcon frontIcon = resolveIcon(matFront, framed.getDefaultFaceIcon());
 
         int dir = tile.getDirection();
+        int rotation = tile.getRotation();
         trimWidth = framed.getTrimWidth();
         trimDepth = framed.getTrimDepth();
 
@@ -84,7 +83,15 @@ public class FramedCompactDrawerRenderer extends DrawersRenderer {
         RenderHelper rh = RenderHelper.instances.get();
         rh.setColorAndBrightness(world, block, x, y, z);
         rh.state.setRotateTransform(RenderHelper.ZNEG, dir);
-        rh.state.setUVRotation(RenderHelper.YPOS, RenderHelperState.ROTATION_BY_FACE_FACE[RenderHelper.ZNEG][dir]);
+        if (dir <= 1) {
+            // Storage Drawers 2.2.28+ lets a drawer face up or down, and spins the front grain with the
+            // placer's pitch rather than using the fixed face table. Mirrors DrawersRenderer.renderBaseBlock;
+            // without this a flat-mounted framed compacting drawer renders with unrotated textures.
+            if (dir == 1) rh.state.setUVRotation(RenderHelper.YPOS, (4 - rotation) % 4);
+            else rh.state.setUVRotation(RenderHelper.YNEG, (rotation + 2) % 4);
+        } else {
+            rh.state.setUVRotation(RenderHelper.YPOS, RenderHelperState.ROTATION_BY_FACE_FACE[RenderHelper.ZNEG][dir]);
+        }
 
         int pass = ForgeHooksClient.getWorldRenderPass();
         if (pass == 0) {
@@ -191,6 +198,7 @@ public class FramedCompactDrawerRenderer extends DrawersRenderer {
 
         rh.state.clearRotateTransform();
         rh.state.clearUVRotation(RenderHelper.YPOS);
+        rh.state.clearUVRotation(RenderHelper.YNEG);
     }
 
     /**

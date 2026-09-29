@@ -39,6 +39,23 @@ public class TileFramedSlave extends TileEntitySlave {
         this.matFront = stack;
     }
 
+    /** See {@link TileFramedController#getEffectiveMaterialSide()} for why the fallback chain exists. */
+    public ItemStack getEffectiveMaterialSide() {
+        if (matSide != null) return matSide;
+        if (matTrim != null) return matTrim;
+        return matFront;
+    }
+
+    public ItemStack getEffectiveMaterialTrim() {
+        if (matTrim != null) return matTrim;
+        return getEffectiveMaterialSide();
+    }
+
+    public ItemStack getEffectiveMaterialFront() {
+        if (matFront != null) return matFront;
+        return getEffectiveMaterialSide();
+    }
+
     @Override
     public void readFromNBT(NBTTagCompound tag) {
         super.readFromNBT(tag);

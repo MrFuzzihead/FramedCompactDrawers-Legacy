@@ -54,9 +54,9 @@ public class FramedControllerRenderer implements ISimpleBlockRenderingHandler {
         TileFramedController tile = controller.getTileEntityFramed(world, x, y, z);
         if (tile == null) return false;
 
-        ItemStack matSide = tile.getMaterialSide();
-        ItemStack matFront = tile.getMaterialFront();
-        ItemStack matTrim = tile.getMaterialTrim();
+        ItemStack matSide = tile.getEffectiveMaterialSide();
+        ItemStack matFront = tile.getEffectiveMaterialFront();
+        ItemStack matTrim = tile.getEffectiveMaterialTrim();
 
         IIcon sideIcon = resolveIcon(matSide, controller.getDefaultFaceIcon());
         IIcon trimIcon = resolveIcon(matTrim, controller.getDefaultTrimIcon());

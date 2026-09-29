@@ -55,10 +55,9 @@ public class FramedSlaveRenderer implements ISimpleBlockRenderingHandler {
         if (!(te instanceof TileFramedSlave)) return false;
         TileFramedSlave tile = (TileFramedSlave) te;
 
-        ItemStack matSide = tile.getMaterialSide();
-        ItemStack matTrim = tile.getMaterialTrim();
-        ItemStack matTopBottom = tile.getMaterialFront();
-        if (matTopBottom == null) matTopBottom = matSide;
+        ItemStack matSide = tile.getEffectiveMaterialSide();
+        ItemStack matTrim = tile.getEffectiveMaterialTrim();
+        ItemStack matTopBottom = tile.getEffectiveMaterialFront();
 
         IIcon sideIcon = resolveIcon(matSide, slave.getDefaultFaceIcon());
         IIcon trimIcon = resolveIcon(matTrim, slave.getDefaultTrimIcon());
