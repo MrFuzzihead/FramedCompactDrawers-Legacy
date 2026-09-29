@@ -25,6 +25,7 @@ public class FramedSlaveRenderer implements ISimpleBlockRenderingHandler {
 
     private final PanelBoxRenderer panelRenderer = new PanelBoxRenderer();
     private final ModularBoxRenderer invBoxRenderer = new ModularBoxRenderer();
+    private final FallbackBoxRenderer fallbackRenderer = new FallbackBoxRenderer();
 
     @Override
     public void renderInventoryBlock(Block block, int metadata, int modelId, RenderBlocks renderer) {
@@ -52,7 +53,20 @@ public class FramedSlaveRenderer implements ISimpleBlockRenderingHandler {
         if (!(block instanceof BlockFramedSlave)) return false;
         BlockFramedSlave slave = (BlockFramedSlave) block;
         com.jaquadro.minecraft.storagedrawers.block.tile.TileEntitySlave te = slave.getTileEntity(world, x, y, z);
-        if (!(te instanceof TileFramedSlave)) return false;
+
+        if (!(te instanceof TileFramedSlave)) {
+            fallbackRenderer.render(
+                world,
+                block,
+                x,
+                y,
+                z,
+                slave.getDefaultFaceIcon(),
+                slave.getDefaultTrimIcon(),
+                FallbackBoxRenderer.DEFAULT_DIRECTION);
+            return true;
+        }
+
         TileFramedSlave tile = (TileFramedSlave) te;
 
         ItemStack matSide = tile.getEffectiveMaterialSide();
@@ -72,8 +86,11 @@ public class FramedSlaveRenderer implements ISimpleBlockRenderingHandler {
         RenderHelper rh = RenderHelper.instances.get();
         rh.setColorAndBrightness(world, block, x, y, z);
 
-        // Protect against stale state from previous renderers on this thread
+        // Protect against stale state from previous renderers on this thread. clearRotateTransform() also
+        // resets RenderHelperState.tilt and the orientation matrices, so those are restored here too even
+        // though nothing in this renderer sets them yet.
         int prevRotate = rh.state.rotateTransform;
+        int prevTilt = rh.state.tilt;
         int prevUvRotY = rh.state.uvRotate[RenderHelper.YPOS];
         int prevUvRotN = rh.state.uvRotate[RenderHelper.YNEG];
 
@@ -105,6 +122,7 @@ public class FramedSlaveRenderer implements ISimpleBlockRenderingHandler {
 
         // Restore previous state
         rh.state.rotateTransform = prevRotate;
+        rh.state.tilt = prevTilt;
         rh.state.uvRotate[RenderHelper.YPOS] = prevUvRotY;
         rh.state.uvRotate[RenderHelper.YNEG] = prevUvRotN;
         return true;

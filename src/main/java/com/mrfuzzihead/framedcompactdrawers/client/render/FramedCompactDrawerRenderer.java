@@ -34,6 +34,7 @@ public class FramedCompactDrawerRenderer extends DrawersRenderer {
 
     private double trimWidth;
     private double trimDepth;
+    private final FallbackBoxRenderer fallbackRenderer = new FallbackBoxRenderer();
     private static final double lessThanHalf = 0.4375;
     private static final double moreThanHalf = 0.5625;
 
@@ -216,14 +217,27 @@ public class FramedCompactDrawerRenderer extends DrawersRenderer {
         RenderBlocks renderer) {
         if (!(block instanceof BlockFramedCompactDrawer)) return false;
 
-        // Let the parent render the base block, lock, void, tape, and shroud overlays.
-        // The parent's renderIndicator is a no-op for drawerCount == 3.
-        boolean result = super.renderWorldBlock(world, x, y, z, block, modelId, renderer);
-        if (!result) return false;
-
         BlockFramedCompactDrawer framed = (BlockFramedCompactDrawer) block;
         TileEntityDrawers tile = framed.getTileEntity(world, x, y, z);
-        if (tile == null) return true;
+
+        // DrawersRenderer.renderWorldBlock bails when the tile is null, which would leave the block invisible
+        // for the frames before the client receives its TileEntity. Fall back to a solid placeholder instead.
+        if (tile == null) {
+            fallbackRenderer.render(
+                world,
+                block,
+                x,
+                y,
+                z,
+                framed.getDefaultFaceIcon(),
+                framed.getDefaultTrimIcon(),
+                FallbackBoxRenderer.DEFAULT_DIRECTION);
+            return true;
+        }
+
+        // Let the parent render the base block, lock, void, tape, and shroud overlays.
+        // The parent's renderIndicator is a no-op for drawerCount == 3.
+        if (!super.renderWorldBlock(world, x, y, z, block, modelId, renderer)) return false;
 
         int side = tile.getDirection();
         if (side < 2 || side > 5) return true;
