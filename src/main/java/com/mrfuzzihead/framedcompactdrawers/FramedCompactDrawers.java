@@ -28,7 +28,8 @@ public class FramedCompactDrawers {
      * StorageDrawers either refuses to load or silently places blocks with no facing at all. Pin the floor
      * instead of relying on the pack to stay behind.
      *
-     * <p>UniMixins is a hard requirement because the Storage Drawers framing-table and item-renderer
+     * <p>
+     * UniMixins is a hard requirement because the Storage Drawers framing-table and item-renderer
      * integration is loaded through {@code com.gtnewhorizon.gtnhmixins.ILateMixinLoader}, which ships in
      * UniMixins rather than GTNHLib.
      */
