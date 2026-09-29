@@ -7,6 +7,7 @@ import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.World;
 
@@ -129,8 +130,8 @@ public class BlockFramedSlave extends BlockSlave {
     }
 
     public TileFramedSlave getTileEntityFramed(World world, int x, int y, int z) {
-        TileFramedSlave tile = (TileFramedSlave) world.getTileEntity(x, y, z);
-        return tile;
+        TileEntity tile = world.getTileEntity(x, y, z);
+        return tile instanceof TileFramedSlave ? (TileFramedSlave) tile : null;
     }
 
     public TileFramedSlave getTileEntitySafe(World world, int x, int y, int z) {
@@ -142,6 +143,11 @@ public class BlockFramedSlave extends BlockSlave {
             tile.zCoord = z;
             tile.setWorldObj(world);
             world.setTileEntity(x, y, z, tile);
+            // BlockSlave.getTileEntitySafe does this too. TileEntitySlave.ensureInitialized() populates
+            // selfCoord, which getAccessibleDrawerSlots() hands to TileEntityController.isValidSlave(). Today
+            // the only path that reaches that call goes through getController(), which initialises it anyway,
+            // so this restores the parent's invariant rather than fixing an observed failure.
+            tile.ensureInitialized();
         }
         return tile;
     }

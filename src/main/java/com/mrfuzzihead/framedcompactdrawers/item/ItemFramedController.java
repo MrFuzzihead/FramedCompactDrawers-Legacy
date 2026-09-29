@@ -9,6 +9,7 @@ import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
 import com.jaquadro.minecraft.storagedrawers.item.ItemCustomDrawers;
+import com.jaquadro.minecraft.storagedrawers.util.DrawerOrientation;
 import com.mrfuzzihead.framedcompactdrawers.block.tile.TileFramedController;
 
 import cpw.mods.fml.relauncher.Side;
@@ -34,12 +35,25 @@ public class ItemFramedController extends ItemCustomDrawers {
             return false;
         }
 
+        TileFramedController tile = (TileFramedController) world.getTileEntity(x, y, z);
+
         if (world.getBlock(x, y, z) == field_150939_a) {
+            // Since StorageDrawers 2.2.28 the block no longer derives its facing during onBlockPlacedBy; the
+            // item block owns orientation now. Resolve it the same way ItemDrawers.placeBlockAt does, or the
+            // tile keeps direction 0 (the down face), which makes the controller inert and paints the front
+            // panel on the bottom of the block.
+            if (tile != null) {
+                DrawerOrientation orientation = DrawerOrientation.forEntity(player);
+                tile.setDirection(orientation.direction());
+                tile.setRotation(orientation.rotation());
+            }
+
             field_150939_a.onBlockPlacedBy(world, x, y, z, player, stack);
             field_150939_a.onPostBlockPlaced(world, x, y, z, metadata);
+
+            if (world.isRemote) world.markBlockForUpdate(x, y, z);
         }
 
-        TileFramedController tile = (TileFramedController) world.getTileEntity(x, y, z);
         if (tile != null && stack.hasTagCompound()
             && !stack.getTagCompound()
                 .hasKey("tile")) {
@@ -66,6 +80,11 @@ public class ItemFramedController extends ItemCustomDrawers {
         return true;
     }
 
+    /**
+     * {@code ItemDrawers} only uses these to size the tooltip, so the raw fields are the right source here. The
+     * placed tile is written back with whatever is actually set, which is why a block that never went through
+     * the framing table drops as a material-less stack and re-renders with the raw default icons.
+     */
     public ItemStack getStack(int metadata) {
         return ItemCustomDrawers.makeItemStack(field_150939_a, 1, null, null, null);
     }

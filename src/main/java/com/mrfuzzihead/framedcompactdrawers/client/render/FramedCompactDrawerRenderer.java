@@ -34,6 +34,7 @@ public class FramedCompactDrawerRenderer extends DrawersRenderer {
 
     private double trimWidth;
     private double trimDepth;
+    private final FallbackBoxRenderer fallbackRenderer = new FallbackBoxRenderer();
     private static final double lessThanHalf = 0.4375;
     private static final double moreThanHalf = 0.5625;
 
@@ -62,17 +63,16 @@ public class FramedCompactDrawerRenderer extends DrawersRenderer {
         RenderBlocks renderer) {
         BlockFramedCompactDrawer framed = (BlockFramedCompactDrawer) block;
 
-        ItemStack matSide = tile.getMaterialSide();
-        ItemStack matFront = tile.getMaterialFront();
-        if (matFront == null) matFront = matSide;
-        ItemStack matTrim = tile.getMaterialTrim();
-        if (matTrim == null) matTrim = matSide;
+        ItemStack matSide = tile.getEffectiveMaterialSide();
+        ItemStack matFront = tile.getEffectiveMaterialFront();
+        ItemStack matTrim = tile.getEffectiveMaterialTrim();
 
         IIcon sideIcon = resolveIcon(matSide, framed.getDefaultFaceIcon());
         IIcon trimIcon = resolveIcon(matTrim, framed.getDefaultTrimIcon());
         IIcon frontIcon = resolveIcon(matFront, framed.getDefaultFaceIcon());
 
         int dir = tile.getDirection();
+        int rotation = tile.getRotation();
         trimWidth = framed.getTrimWidth();
         trimDepth = framed.getTrimDepth();
 
@@ -84,7 +84,15 @@ public class FramedCompactDrawerRenderer extends DrawersRenderer {
         RenderHelper rh = RenderHelper.instances.get();
         rh.setColorAndBrightness(world, block, x, y, z);
         rh.state.setRotateTransform(RenderHelper.ZNEG, dir);
-        rh.state.setUVRotation(RenderHelper.YPOS, RenderHelperState.ROTATION_BY_FACE_FACE[RenderHelper.ZNEG][dir]);
+        if (dir <= 1) {
+            // Storage Drawers 2.2.28+ lets a drawer face up or down, and spins the front grain with the
+            // placer's pitch rather than using the fixed face table. Mirrors DrawersRenderer.renderBaseBlock;
+            // without this a flat-mounted framed compacting drawer renders with unrotated textures.
+            if (dir == 1) rh.state.setUVRotation(RenderHelper.YPOS, (4 - rotation) % 4);
+            else rh.state.setUVRotation(RenderHelper.YNEG, (rotation + 2) % 4);
+        } else {
+            rh.state.setUVRotation(RenderHelper.YPOS, RenderHelperState.ROTATION_BY_FACE_FACE[RenderHelper.ZNEG][dir]);
+        }
 
         int pass = ForgeHooksClient.getWorldRenderPass();
         if (pass == 0) {
@@ -191,6 +199,7 @@ public class FramedCompactDrawerRenderer extends DrawersRenderer {
 
         rh.state.clearRotateTransform();
         rh.state.clearUVRotation(RenderHelper.YPOS);
+        rh.state.clearUVRotation(RenderHelper.YNEG);
     }
 
     /**
@@ -208,14 +217,27 @@ public class FramedCompactDrawerRenderer extends DrawersRenderer {
         RenderBlocks renderer) {
         if (!(block instanceof BlockFramedCompactDrawer)) return false;
 
-        // Let the parent render the base block, lock, void, tape, and shroud overlays.
-        // The parent's renderIndicator is a no-op for drawerCount == 3.
-        boolean result = super.renderWorldBlock(world, x, y, z, block, modelId, renderer);
-        if (!result) return false;
-
         BlockFramedCompactDrawer framed = (BlockFramedCompactDrawer) block;
         TileEntityDrawers tile = framed.getTileEntity(world, x, y, z);
-        if (tile == null) return true;
+
+        // DrawersRenderer.renderWorldBlock bails when the tile is null, which would leave the block invisible
+        // for the frames before the client receives its TileEntity. Fall back to a solid placeholder instead.
+        if (tile == null) {
+            fallbackRenderer.render(
+                world,
+                block,
+                x,
+                y,
+                z,
+                framed.getDefaultFaceIcon(),
+                framed.getDefaultTrimIcon(),
+                FallbackBoxRenderer.DEFAULT_DIRECTION);
+            return true;
+        }
+
+        // Let the parent render the base block, lock, void, tape, and shroud overlays.
+        // The parent's renderIndicator is a no-op for drawerCount == 3.
+        if (!super.renderWorldBlock(world, x, y, z, block, modelId, renderer)) return false;
 
         int side = tile.getDirection();
         if (side < 2 || side > 5) return true;

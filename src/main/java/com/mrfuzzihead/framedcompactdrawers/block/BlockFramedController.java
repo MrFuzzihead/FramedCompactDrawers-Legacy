@@ -69,7 +69,7 @@ public class BlockFramedController extends BlockController {
     public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hitX,
         float hitY, float hitZ) {
         TileFramedController te = getTileEntitySafeFramed(world, x, y, z);
-        if (te == null || te.getMaterialSide() == null) return false;
+        if (te == null) return false;
 
         if (side != te.getDirection()) {
             return false;

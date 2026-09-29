@@ -39,6 +39,29 @@ public class TileFramedController extends TileEntityController {
         this.matFront = stack;
     }
 
+    /**
+     * Mirrors the fallback chain on {@code TileEntityDrawers.getEffectiveMaterial*}. A block produced by this
+     * mod's recipe carries no {@code MatS}/{@code MatT}/{@code MatF} NBT, so the raw getters legitimately
+     * return null until the block has been through the Storage Drawers framing table. The renderers resolve
+     * these and then fall back to the raw default icons, which is why an unframed block still looks and
+     * behaves like a block instead of failing to render.
+     */
+    public ItemStack getEffectiveMaterialSide() {
+        if (matSide != null) return matSide;
+        if (matTrim != null) return matTrim;
+        return matFront;
+    }
+
+    public ItemStack getEffectiveMaterialTrim() {
+        if (matTrim != null) return matTrim;
+        return getEffectiveMaterialSide();
+    }
+
+    public ItemStack getEffectiveMaterialFront() {
+        if (matFront != null) return matFront;
+        return getEffectiveMaterialSide();
+    }
+
     @Override
     public void readFromNBT(NBTTagCompound tag) {
         super.readFromNBT(tag);
