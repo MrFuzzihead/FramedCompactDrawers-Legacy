@@ -55,7 +55,11 @@ public class MixinContainerFramingTable {
      * missing, so a player who fills only the trim or front slot gets a silently empty result. The framed
      * blocks are happy to render with a single material, so promote whichever slot was filled.
      */
-    @Inject(method = "onCraftMatrixChanged(Lnet/minecraft/inventory/IInventory;)V", at = @At("TAIL"), remap = false)
+    // Keep remapping enabled on this injector. onCraftMatrixChanged overrides Container.func_75130_a,
+    // so it is reobfuscated to func_75130_a in the released Storage Drawers jar. The generated refmap
+    // entry is what lets this injector find the method in production; with remap = false the injection
+    // silently no-ops in the modpack while still working in the MCP development environment.
+    @Inject(method = "onCraftMatrixChanged(Lnet/minecraft/inventory/IInventory;)V", at = @At("TAIL"))
     private void framedCompactDrawers$handleFramedBlocks(IInventory inventory, CallbackInfo ci) {
         ItemStack target = tableInventory.getStackInSlot(inputSlot.getSlotIndex());
         if (target == null) return;
